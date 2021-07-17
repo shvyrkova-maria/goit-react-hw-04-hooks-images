@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import Searchbar from 'components/Searchbar/Searchbar';
 import Spinner from 'components/Spinner/Spinner';
@@ -15,42 +15,29 @@ const Status = {
   REJECTED: 'rejected',
 };
 
-class App extends Component {
-  state = {
-    status: Status.IDLE,
-    searchQuery: '',
-    page: 1,
-    images: [],
-    activeImage: null,
-    error: null,
-  };
+function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [activeImage, setActiveImage] = useState(null);
+  const [status, setStatus] = useState(Status.IDLE);
+  const [reqError, setReqError] = useState(null);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { page, searchQuery } = this.state;
+  useEffect(() => {
+    if (!searchQuery) return;
+    setStatus(Status.PENDING);
+    fetchImagesOnClick(searchQuery, page);
+  }, [page, searchQuery]);
 
-    if (prevState.searchQuery !== searchQuery) {
-      this.setState({ images: [] });
-      this.fetchImagesOnClick(searchQuery, page);
-    }
-
-    if (prevState.page !== page && page !== 1) {
-      this.fetchImagesOnClick(searchQuery, page);
-    }
-  }
-
-  fetchImagesOnClick = (searchQuery, page) => {
-    this.setState({ status: Status.PENDING });
-
+  const fetchImagesOnClick = (searchQuery, page) => {
     fetchImages(searchQuery, page)
       .then(({ hits }) => {
         if (hits.length === 0) {
-          this.setState({ status: Status.IDLE });
+          setStatus(Status.IDLE);
           toast.error("Sorry, we couldn't find any matches");
         } else {
-          this.setState(({ images }) => ({
-            images: [...images, ...hits],
-            status: Status.RESOLVED,
-          }));
+          setImages(images => [...images, ...hits]);
+          setStatus(Status.RESOLVED);
 
           window.scrollTo({
             top: document.body.scrollHeight,
@@ -59,69 +46,51 @@ class App extends Component {
         }
       })
       .catch(error => {
-        this.setState({ error, status: Status.REJECTED });
+        setReqError(Status.REJECTED);
       });
   };
 
-  handleSubmitForm = value => {
-    this.setState({ searchQuery: value, page: 1 });
+  const handleSubmitForm = value => {
+    setSearchQuery(value);
+    setPage(1);
+    setImages([]);
   };
 
-  handleButtonClick = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-    }));
-  };
+  const handleButtonClick = () => setPage(page => page + 1);
 
-  resetActiveImage = () => {
-    this.setState({ activeImage: null });
-  };
+  const handleImageClick = activeImage => setActiveImage(activeImage);
+  const resetActiveImage = () => setActiveImage(null);
 
-  handleImageClick = activeImage => {
-    this.setState({ activeImage });
-  };
-
-  render() {
-    const {
-      handleSubmitForm,
-      handleButtonClick,
-      handleImageClick,
-      resetActiveImage,
-    } = this;
-
-    const { images, error, status, activeImage } = this.state;
-
-    return (
-      <>
-        <Searchbar onSubmit={handleSubmitForm} toast={toast} />
-        {status === Status.IDLE && <></>}
-        {status === Status.PENDING && <Spinner />}
-        {status === Status.REJECTED && <Notification text={error} />}
-        {status === Status.RESOLVED && (
-          <>
-            <ImageGallery images={images} onImageClick={handleImageClick} />
-            <Button onClick={handleButtonClick} />
-            {activeImage && (
-              <Modal closeModal={resetActiveImage}>
-                <img src={activeImage.largeImageURL} alt={activeImage.tags} />
-              </Modal>
-            )}
-          </>
-        )}
-        <Toaster
-          position="top-right"
-          containerStyle={{ top: 100 }}
-          toastOptions={{
-            style: {
-              border: '1px solid #3f51b5',
-              padding: '12px',
-              color: '#212121',
-            },
-          }}
-        />
-      </>
-    );
-  }
+  return (
+    <>
+      <Searchbar onSubmit={handleSubmitForm} toast={toast} />
+      {status === Status.IDLE && <></>}
+      {status === Status.PENDING && <Spinner />}
+      {status === Status.REJECTED && <Notification text={reqError} />}
+      {status === Status.RESOLVED && (
+        <>
+          <ImageGallery images={images} onImageClick={handleImageClick} />
+          <Button onClick={handleButtonClick} />
+          {activeImage && (
+            <Modal closeModal={resetActiveImage}>
+              <img src={activeImage.largeImageURL} alt={activeImage.tags} />
+            </Modal>
+          )}
+        </>
+      )}
+      <Toaster
+        position="top-right"
+        containerStyle={{ top: 100 }}
+        toastOptions={{
+          style: {
+            border: '1px solid #3f51b5',
+            padding: '12px',
+            color: '#212121',
+          },
+        }}
+      />
+    </>
+  );
 }
 
 export default App;

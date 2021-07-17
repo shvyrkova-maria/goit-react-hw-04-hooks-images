@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Header,
@@ -7,60 +7,49 @@ import {
   SearchInput,
 } from 'components/Searchbar/Searchbar.styled';
 
-const INITIAL_STATE = {
-  value: '',
-};
+function Searchbar({ toast, onSubmit }) {
+  const [inputValue, setInputValue] = useState('');
 
-class Searchbar extends Component {
-  static propTypes = {
-    toast: PropTypes.func.isRequired,
-    onSubmit: PropTypes.func.isRequired,
+  const handleChange = event => {
+    setInputValue(event.target.value.toLowerCase());
   };
 
-  state = {
-    ...INITIAL_STATE,
-  };
-
-  handleChange = event => {
-    this.setState({ value: event.target.value.toLowerCase() });
-  };
-
-  handleSubmit = event => {
+  const handleSubmit = event => {
     event.preventDefault();
-    const { value } = this.state;
-    const { toast, onSubmit } = this.props;
 
-    if (value.trim() === '') {
+    if (inputValue.trim() === '') {
       toast.error('Type a keyword to start searching images');
     }
 
-    onSubmit(value);
-    this.formReset();
+    onSubmit(inputValue);
+    formReset();
   };
 
-  formReset = () => {
-    this.setState({ ...INITIAL_STATE });
+  const formReset = () => {
+    setInputValue('');
   };
 
-  render() {
-    const { handleChange, handleSubmit } = this;
-    return (
-      <Header>
-        <SearchForm onSubmit={handleSubmit}>
-          <SearchFormButton type="submit" />
-          <SearchInput
-            type="text"
-            value={this.state.value}
-            onChange={handleChange}
-            debounceTimeout={1000}
-            autoComplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-          />
-        </SearchForm>
-      </Header>
-    );
-  }
+  return (
+    <Header>
+      <SearchForm onSubmit={handleSubmit}>
+        <SearchFormButton type="submit" />
+        <SearchInput
+          type="text"
+          value={inputValue}
+          onChange={handleChange}
+          debounceTimeout={1000}
+          autoComplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+        />
+      </SearchForm>
+    </Header>
+  );
 }
 
 export default Searchbar;
+
+Searchbar.propTypes = {
+  toast: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+};
